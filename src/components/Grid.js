@@ -42,7 +42,7 @@ const NavBar = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #007bff;
+    background-color: darkslategrey;
     color: white;
     padding: 10px;
 `;
@@ -51,6 +51,13 @@ const NavBarItem = styled.img`
     width: 60px;
     height: auto; /* Adjust height to maintain aspect ratio */
     cursor: pointer;
+`;
+
+const SearchInput = styled.input`
+    padding: 5px;
+    border: none;
+    border-radius: 5px;
+    display: ${({ visible }) => (visible ? 'block' : 'none')};
 `;
 
 const ImageContainer = styled.div`
@@ -84,7 +91,7 @@ const BackToTopButton = styled.button`
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background-color: #007bff;
+    background-color: darkslategrey;
     color: white;
     border: none;
     padding: 10px;
@@ -96,10 +103,13 @@ const placeholderImageUrl = 'https://test.create.diagnal.com/images/placeholder_
 
 const Grid = () => {
     const [images, setImages] = useState([]);
+    const [filteredImages, setFilteredImages] = useState([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const loaderRef = useRef(null);
     const [showBackToTop, setShowBackToTop] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
 
     const fetchImages = useCallback(async () => {
         if (!hasMore) {
@@ -154,9 +164,21 @@ const Grid = () => {
         console.log("Back clicked");
     };
 
+    const handleSearchChange = (e) => {
+        const value = e.target.value.toLowerCase();
+        setSearchTerm(value);
+        if (value === '') {
+            setFilteredImages(images);
+        } else {
+            const filtered = images.filter(image =>
+                image.name.toLowerCase().includes(value)
+            );
+            setFilteredImages(filtered);
+        }
+    };
+
     const handleSearchClick = () => {
-        // Placeholder for search click functionality
-        console.log("Search clicked");
+        setShowSearch(prevShowSearch => !prevShowSearch);
     };
 
     useEffect(() => {
@@ -197,6 +219,10 @@ const Grid = () => {
         };
     }, [images]); // Observe changes in images array
 
+    useEffect(() => {
+        setFilteredImages(images);
+    }, [images]);
+
     const renderImage = (poster) => {
         const imageUrl = `https://test.create.diagnal.com/images/${poster['poster-image']}`;
         const name = poster.name || 'No Name';
@@ -219,11 +245,17 @@ const Grid = () => {
         <>
             <NavBar>
                 <NavBarItem src="https://test.create.diagnal.com/images/Back.png" alt="Back" onClick={handleBackClick} />
-                {/* <h2>Grid of Images</h2> */}
+                <SearchInput
+                    type="text"
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    visible={showSearch}
+                />
                 <NavBarItem src="https://test.create.diagnal.com/images/search.png" alt="Search" onClick={handleSearchClick} />
             </NavBar>
             <GridContainer ref={loaderRef} data-testid="grid-container">
-                {images.map((poster, index) => renderImage(poster))}
+                {filteredImages.map((poster, index) => renderImage(poster))}
                 {hasMore && <Loader>Loading...</Loader>}
                 <BackToTopButton show={showBackToTop} onClick={scrollToTop}>Back to Top</BackToTopButton>
             </GridContainer>
