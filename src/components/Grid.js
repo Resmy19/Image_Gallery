@@ -160,13 +160,22 @@ const Grid = () => {
     };
 
     const handleBackClick = () => {
-        // Placeholder for back click functionality
-        console.log("Back clicked");
+        setShowSearch(prevShowSearch => {
+            if (prevShowSearch) {
+                setSearchTerm('');
+                setImages([]); // Clear images array
+                setPage(1);
+                setHasMore(true);
+                fetchImages();
+            }
+            return !prevShowSearch;
+        });
     };
 
     const handleSearchChange = (e) => {
         const value = e.target.value.toLowerCase();
         setSearchTerm(value);
+        setPage(1); // Reset page when searching
         if (value === '') {
             setFilteredImages(images);
         } else {
@@ -219,6 +228,7 @@ const Grid = () => {
         };
     }, [images]); // Observe changes in images array
 
+
     useEffect(() => {
         setFilteredImages(images);
     }, [images]);
@@ -252,7 +262,12 @@ const Grid = () => {
                     onChange={handleSearchChange}
                     visible={showSearch}
                 />
-                <NavBarItem src="https://test.create.diagnal.com/images/search.png" alt="Search" onClick={handleSearchClick} />
+                <NavBarItem
+                    src="https://test.create.diagnal.com/images/search.png"
+                    alt="Search"
+                    onClick={handleSearchClick}
+                    style={{ display: showSearch ? 'none' : 'block' }}
+                />
             </NavBar>
             <GridContainer ref={loaderRef} data-testid="grid-container">
                 {filteredImages.map((poster, index) => renderImage(poster))}
