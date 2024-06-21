@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
+import { Pagination as MuiPagination, Box, Typography } from '@mui/material';
 
 const GridContainer = styled.div`
     display: grid;
@@ -48,7 +49,7 @@ const NavBar = styled.div`
 `;
 
 const NavBarItem = styled.img`
-    width: 60px;
+    width: 45px;
     height: auto; /* Adjust height to maintain aspect ratio */
     cursor: pointer;
 `;
@@ -87,18 +88,6 @@ const Loader = styled.div`
     font-size: 1.5em;
 `;
 
-const BackToTopButton = styled.button`
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: darkslategrey;
-    color: white;
-    border: none;
-    padding: 10px;
-    cursor: pointer;
-    display: ${({ show }) => (show ? 'block' : 'none')};
-`;
-
 const placeholderImageUrl = 'https://test.create.diagnal.com/images/placeholder_for_missing_posters.png';
 
 const Grid = () => {
@@ -107,9 +96,11 @@ const Grid = () => {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const loaderRef = useRef(null);
-    const [showBackToTop, setShowBackToTop] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearch, setShowSearch] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(12); // Adjust as needed
+    const [totalPages, setTotalPages] = useState(0);
 
     const fetchImages = useCallback(async () => {
         if (!hasMore) {
@@ -130,10 +121,15 @@ const Grid = () => {
                 setImages(prevImages => [...prevImages, ...newImages]);
                 setPage(prevPage => prevPage + 1);
             }
+            setTotalPages(Math.ceil((images.length + newImages.length) / itemsPerPage));
         } catch (error) {
             console.error("Error fetching images:", error);
         }
-    }, [page, hasMore]);
+    }, [page, hasMore, itemsPerPage, images.length]);
+
+    const handlePageChange = (event, pageNumber) => {
+        setCurrentPage(pageNumber);
+    };
 
     const handleScroll = useCallback(() => {
         if (loaderRef.current) {
@@ -141,29 +137,14 @@ const Grid = () => {
             if (scrollHeight - scrollTop <= clientHeight * 1.5 && hasMore) {
                 fetchImages();
             }
-            // Show Back to Top button logic
-            if (scrollTop > clientHeight) {
-                setShowBackToTop(true);
-            } else {
-                setShowBackToTop(false);
-            }
         }
     }, [fetchImages, hasMore]);
-
-    const scrollToTop = () => {
-        if (loaderRef.current) {
-            loaderRef.current.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        }
-    };
 
     const handleBackClick = () => {
         setShowSearch(prevShowSearch => {
             if (prevShowSearch) {
                 setSearchTerm('');
-                setImages([]); // Clear images array
+                setFilteredImages([]);
                 setPage(1);
                 setHasMore(true);
                 fetchImages();
@@ -228,10 +209,11 @@ const Grid = () => {
         };
     }, [images]); // Observe changes in images array
 
-
     useEffect(() => {
-        setFilteredImages(images);
-    }, [images]);
+        if (searchTerm === '') {
+            setFilteredImages(images);
+        }
+    }, [images, searchTerm]);
 
     const renderImage = (poster) => {
         const imageUrl = `https://test.create.diagnal.com/images/${poster['poster-image']}`;
@@ -251,6 +233,8 @@ const Grid = () => {
         );
     };
 
+    const currentItems = searchTerm ? filteredImages.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage) : images.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     return (
         <>
             <NavBar>
@@ -269,10 +253,37 @@ const Grid = () => {
                     style={{ display: showSearch ? 'none' : 'block' }}
                 />
             </NavBar>
+            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <MuiPagination
+                    count={Math.ceil((searchTerm ? filteredImages.length : images.length) / itemsPerPage)}
+                    page={currentPage}
+                    onChange={handlePageChange}
+                    color="primary"
+                    siblingCount={0}
+                    boundaryCount={1}
+                    size={'small'}
+                    sx={{
+                        mt: 2,
+                        justifyContent: 'center',
+                        marginBottom: '5px',
+                        display: 'flex',
+                        '& .MuiPaginationItem-root': {
+                            color: 'darkslategrey',
+                            borderColor: 'darkslategrey',
+                        },
+                        '& .Mui-selected': {
+                            color: 'white',
+                            backgroundColor: 'darkslategrey',
+                        },
+                    }}
+                />
+                {/* <Typography variant="body2" sx={{ mt: 2 }}>
+                    Page {currentPage} of {Math.ceil((searchTerm ? filteredImages.length : images.length) / itemsPerPage)}
+                </Typography> */}
+            </Box>
             <GridContainer ref={loaderRef} data-testid="grid-container">
-                {filteredImages.map((poster, index) => renderImage(poster))}
+                {currentItems.map((poster, index) => renderImage(poster))}
                 {hasMore && <Loader>Loading...</Loader>}
-                <BackToTopButton show={showBackToTop} onClick={scrollToTop}>Back to Top</BackToTopButton>
             </GridContainer>
         </>
     );

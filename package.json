@@ -4,6 +4,7 @@
   "private": true,
   "homepage": "https://resmy19.github.io/Image_Gallery/",
   "dependencies": {
+    "@mui/material": "^5.15.20",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.7.2",
     "react": "^18.3.1",
